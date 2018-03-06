@@ -14,51 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from google.appengine.ext import ndb
 import webapp2
-
-
-class Greetings(ndb.Model):
-    name = ndb.StringProperty(required=True)
-    message = ndb.TextProperty(required=True)
-    timestamp = ndb.DateTimeProperty(auto_now_add=True)
+import os
+import jinja2
+from models.greetings import Greetings
 
 
 class MainHandler(webapp2.RequestHandler):
     def get(self):
-        html = """
-        <html>
-        
-        <head>
-        </head>
-        
-        <body>
-        <h1>My Guest Book</h1>
-        
-        <form action="/greet" method="post">
-            <p>
-                Name: <input type="text" name="user_name" style="width: 300px">
-            </p>
-            <p>
-                Message: <textarea name="message" style="width: 300px" rows=5></textarea>
-            </p>
-            <p>
-                <input type="submit" value="Send" >
-            </p>
-        </form>
-        
-        <h1>Past Greetings</h1> 
-        """
         greetings = Greetings.query().order(-Greetings.timestamp).fetch()
-
-        for greet in greetings:
-            html += greet.timestamp.strftime('%Y-%m-%d %H:%m') + " - " + greet.name + " said " + greet.message + "<br>"
-
-        html += """
-        </body>
-        </html>
-        """
-        self.response.write(html)
+        greetings_dict = {'greetings': greetings}
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
+        template = jinja_environment.get_template('home.html')
+        rendered_template = template.render(greetings_dict)
+        self.response.write(rendered_template)
 
 
 class GreetHandler(webapp2.RequestHandler):
@@ -69,10 +39,6 @@ class GreetHandler(webapp2.RequestHandler):
         self.redirect('/')
 
 
-app = webapp2.WSGIApplication([
-    ('/', MainHandler),
-    ('/greet', GreetHandler)
-], debug=True)
 
 
 
